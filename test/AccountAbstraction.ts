@@ -68,15 +68,18 @@ describe("AccountAbstraction", function () {
     //transfer token to AccountAbstraction contract
     const contractAddress = await accountAbstraction.getAddress();
 
+    //transfer 100 token to Account Abstraction contract
     await myToken.transfer(contractAddress, 100);
 
+    //check if transfer is succesful 
     const balance = await myToken.balanceOf(contractAddress);
     expect(balance).to.equal(100);
 
+    //withdraw tokens
     await accountAbstraction.withdrawTokens(myToken.getAddress(), 50);
 
+    //check if withdrawal is succesful 
     const newBalance = await myToken.balanceOf(contractAddress);
-
     expect(newBalance).to.equal(50);
   });
 });
