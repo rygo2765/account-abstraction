@@ -28,14 +28,14 @@ describe("AccountAbstraction", function () {
 
   it("should be able to receive ETH", async function () {
     const deployedAddess = await accountAbstraction.getAddress();
-    const [owner] = await ethers.getSigners();
+    const [owner] = await ethers.getSigners(); //need to change this to use 3rd account
 
     const tx = {
       to: deployedAddess,
       value: ethers.parseEther("1.0"),
     };
 
-    await owner.sendTransaction(tx);
+    await owner.sendTransaction(tx); //need to change this to use 3rd account
 
     const ethBalance = await accountAbstraction.getEthBalance();
     expect(ethBalance).to.equal(ethers.parseEther("1.0"));
@@ -43,7 +43,7 @@ describe("AccountAbstraction", function () {
 
   it("should withdraw the specified amount of ETH", async function () {
     const deployedAddess = await accountAbstraction.getAddress();
-    const [owner] = await ethers.getSigners();
+    const [owner] = await ethers.getSigners(); //need to change this to use 3rd account
 
     const tx = {
       to: deployedAddess,
@@ -81,5 +81,10 @@ describe("AccountAbstraction", function () {
     //check if withdrawal is succesful 
     const newBalance = await myToken.balanceOf(contractAddress);
     expect(newBalance).to.equal(50);
+
+    //use ethers.getSigners to get 2 separate address to deploy the AA contract and Token contract
+    //check that owner of token contract has 10,000 tokens
+    //transfer tokens over to AA contract 
+    //withdraw tokens, check if owner account has the tokens now and that the AA contract has reduced by that same amount
   });
 });
