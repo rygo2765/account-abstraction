@@ -15,11 +15,6 @@ contract AccountAbstraction is Ownable {
     //Receive tokens
     receive() external payable {}
 
-    //Function to get ETH balance
-    function getEthBalance() public view returns (uint256) {
-        return address(this).balance;
-    }
-
     //Function to withdraw ETH
     function withdrawEth(uint256 _amount) external onlyOwner {
         require(
