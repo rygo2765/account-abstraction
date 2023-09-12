@@ -18,8 +18,8 @@
     "test": "test"
   },
   "scripts": {
-    "test": "npx dotenv hardhat test --network fork",
-    "start": "npx dotenv hardhat node --fork fork"
+    "test": "dotenv hardhat test",
+    "start": "dotenv hardhat node"
   },
   "author": "",
   "license": "ISC"
