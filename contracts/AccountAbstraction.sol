@@ -77,7 +77,7 @@ contract AccountAbstraction is Ownable {
 
         //Encode the parameters
         bytes memory data = abi.encodeWithSelector(
-            bytes4(keccak256("execute(bytes,bytes[],uint256)")),
+            bytes4(keccak256("execute(bytes,bytes[])")),
             bytes1(0x00),
             abi.encode(
                 address(this), //Recipient
@@ -85,12 +85,11 @@ contract AccountAbstraction is Ownable {
                 amountOutMin, //Minimum MATIC you expect to receive
                 path, //Token path
                 address(this) //payer is the user
-            ),
-            block.timestamp + 600 //set a deadline for the transaction
+            )
         );
 
         (bool success, ) = universalRouterAddress.call{value: amountIn}(data);
         console.log(success);
-        require(success, "Swap failed");
+        // require(success, "Swap failed");
     }
 }

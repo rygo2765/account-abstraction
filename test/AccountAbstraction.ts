@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import MATICABI from "./erc20.abi.json";
+import erc20Abi from "./erc20.abi.json";
 import {
   AccountAbstraction,
   AccountAbstraction__factory,
@@ -114,8 +114,6 @@ describe("AccountAbstraction", function () {
     //Deposit ETH into smart contract
     const deployedAddress = await accountAbstraction.getAddress();
     console.log({ deployedAddress });
-    const balanceBefore = await ethers.provider.getBalance(deployedAddress);
-    console.log({ balanceBefore });
 
     const tx = {
       to: deployedAddress,
@@ -123,17 +121,17 @@ describe("AccountAbstraction", function () {
     };
     await ethSender.sendTransaction(tx);
 
-    const balanceAfter = await ethers.provider.getBalance(deployedAddress);
-    console.log({ balanceAfter });
-
     const MATIC_TOKEN_ADDRESS = "0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0";
-    const MATIC = new ethers.Contract(
+    const matic = new ethers.Contract(
       MATIC_TOKEN_ADDRESS,
-      MATICABI,
+      erc20Abi,
       ethers.provider
     );
+    const maticBalanceBefore = await matic.balanceOf(deployedAddress);
+    console.log({ maticBalanceBefore });
+
     const amountIn = ethers.parseEther("0.5");
-    const amountOut = 1500;
+    const amountOut = ethers.parseUnits("1500", 18);
     //swap 0.5 ETH for 1500 MATIC
     const txResponse = await accountAbstraction.swapEth(
       amountIn,
@@ -146,14 +144,12 @@ describe("AccountAbstraction", function () {
     // console.log(receipt?.status)
     expect(receipt?.status).to.equal(1);
 
-    // let maticToken = await ethers.getContractAt('MATICABI', MATIC_TOKEN_ADDRESS);
+    const ethBalance = await ethers.provider.getBalance(deployedAddress);
 
-    const ethBalance = await ethers.provider.getBalance(deployedAddess);
-    const maticBalance = await MATIC.balanceOf(deployedAddess);
-
-    console.log("MATIC Balance:", ethers.formatUnits(maticBalance, 18));
+    const maticBalanceAfter = await matic.balanceOf(deployedAddress);
+    console.log({ maticBalanceAfter });
 
     expect(ethBalance).to.equal(ethers.parseEther("0.5"));
-    expect(maticBalance).to.be.at.least(1500);
+    expect(maticBalanceAfter).to.be.at.least(1500);
   });
 });
