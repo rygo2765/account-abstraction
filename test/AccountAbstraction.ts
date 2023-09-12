@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import MATICABI from './erc20.abi.json'
 import {
   AccountAbstraction,
   AccountAbstraction__factory,
@@ -101,4 +102,45 @@ describe("AccountAbstraction", function () {
     expect(newBalance).to.equal(50);
 
   });
+
+  it("should be able to swap ETH for MATIC", async function(){
+    const {accountAbstraction, ethSender} = await loadFixture(deployContracts);
+
+    const MATIC_TOKEN_ADDRESS = '0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0';
+    const provider = new ethers.JsonRpcProvider('http://127.0.0.1:8545/');
+    const MATIC = new ethers.Contract(MATIC_TOKEN_ADDRESS, MATICABI, provider)
+
+    //Deposit ETH into smart contract
+    const deployedAddess = await accountAbstraction.getAddress();
+
+    const tx = {
+      to: deployedAddess,
+      value: ethers.parseEther("1.0"),
+    };
+
+    await ethSender.sendTransaction(tx);
+    
+    const amountIn = ethers.parseEther("0.5");
+    const amountOut = 1500;
+    //swap 0.5 ETH for 1500 MATIC
+    const txResponse = await accountAbstraction.swapEthToMatic(amountIn, amountOut)
+
+    const receipt = await txResponse.wait();
+    console.log(receipt)
+    // console.log(receipt?.status)
+    expect(receipt?.status).to.equal(1);
+
+    // let maticToken = await ethers.getContractAt('MATICABI', MATIC_TOKEN_ADDRESS);
+  
+
+
+    const ethBalance = await ethers.provider.getBalance(deployedAddess);
+    const maticBalance = await MATIC.balanceOf(deployedAddess);
+
+    console.log("MATIC Balance:", ethers.formatUnits(maticBalance, 18));
+
+
+    expect(ethBalance).to.equal(ethers.parseEther("0.5"));
+    expect(maticBalance).to.be.at.least(1500);
+  })
 });

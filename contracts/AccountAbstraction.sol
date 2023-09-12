@@ -5,10 +5,11 @@ pragma solidity ^0.8.15;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 
 contract AccountAbstraction is Ownable {
     using SafeERC20 for IERC20;
+
+    address public universalRouterAddress = 0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD;
 
     event TokensWithdrawn(address indexed token, uint256 amount);
 
@@ -44,5 +45,44 @@ contract AccountAbstraction is Ownable {
         IERC20(_token).safeTransfer(owner(), _amount);
 
         emit TokensWithdrawn(_token, _amount);
+    }
+
+    //function to swap tokens
+    // function swap(
+    //     address inToken,
+    //     address outToken,
+    //     uint256 amount,
+    //     uint256 minOut,
+    //     bool isEthSwap,
+    //     bytes calldata _data
+    // ) external onlyOwner returns (uint256 actualOut) {
+
+    //     address uniswapRouterContractAddress = 0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD;
+
+    // }
+
+    function swapEthToMatic(uint256 amountIn, uint56 amountOutMin) external onlyOwner{
+        //Prepare the token path (ETH to MATIC)
+        address[] memory path = new address[](2);
+        path[0] = address(0); 
+        path[1] = address(0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0);
+
+
+        //Encode the parameters 
+        bytes memory data = abi.encodeWithSelector(
+            bytes4(keccak256("execute(bytes,bytes[],uint256)")),
+            bytes1(0x00),
+            abi.encode(
+                address(this), //Recipient
+                amountIn,     //Amount of Eth to swap 
+                amountOutMin, //Minimum MATIC you expect to receive 
+                path,         //Token path  
+                address(this) //payer is the user
+            ),
+            block.timestamp + 600 //set a deadline for the transaction 
+        );
+
+        (bool success, ) = universalRouterAddress.call{value: amountIn}(data);
+        require(success,"Swap failed");
     }
 }
