@@ -361,6 +361,50 @@ describe("SmartWallet", function () {
       expect(usdcBalanceAfter).to.be.greaterThan(0);
     });
 
-    it("should fail if less than min out");
+    it("should fail if less than min out", async function () {
+      const { smartWallet, ethSender, owner, trader } = await loadFixture(
+        deployContracts
+      );
+
+      const amountToSwap = 1;
+      const amountToDeposit = amountToSwap * 10;
+
+      const deployedAddress = await smartWallet.getAddress();
+      const tx = {
+        to: deployedAddress,
+        value: ethers.parseEther(amountToDeposit.toString()),
+      };
+      await ethSender.sendTransaction(tx);
+
+      const ethBalanceBefore = await ethers.provider.getBalance(
+        deployedAddress
+      );
+      expect(ethBalanceBefore).to.equal(
+        ethers.parseEther(amountToDeposit.toString())
+      );
+      const wethBalanceBefore = await weth.balanceOf(deployedAddress);
+      expect(wethBalanceBefore).to.equal(0);
+      const usdc = new ethers.Contract(USDC_TOKEN.address, erc20Abi, owner);
+      const usdcBalanceBefore = await usdc.balanceOf(deployedAddress);
+      expect(usdcBalanceBefore).to.equal(0);
+
+      const route = await getRoute(
+        deployedAddress,
+        WETH_TOKEN,
+        USDC_TOKEN,
+        amountToSwap
+      );
+      await expect(
+        smartWallet
+          .connect(trader)
+          .swap(
+            WETH_TOKEN.address,
+            USDC_TOKEN.address,
+            fromReadableAmount(amountToSwap, 18),
+            BigInt(9999e18),
+            route?.methodParameters?.calldata
+          )
+      ).to.be.revertedWith("Out amount less than min out");
+    });
   });
 });
