@@ -10,9 +10,7 @@ import {
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { getRoute } from "./helpers/uniswap";
 import { USDC_TOKEN, WETH_TOKEN } from "./helpers/token";
-import { WETH9 } from "@uniswap/smart-order-router";
 import { fromReadableAmount } from "./helpers/conversion";
-import { Contract } from "hardhat/internal/hardhat-network/stack-traces/model";
 
 describe("SmartWallet", function () {
   let smartWallet: SmartWallet;
