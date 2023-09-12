@@ -52,31 +52,31 @@ describe("SmartWallet", function () {
 
   it("should be able to receive ETH", async function () {
     const { smartWallet, ethSender } = await loadFixture(deployContracts);
-    const deployedAddess = await smartWallet.getAddress();
+    const deployedAddress = await smartWallet.getAddress();
 
     const tx = {
-      to: deployedAddess,
+      to: deployedAddress,
       value: ethers.parseEther("1.0"),
     };
 
     await ethSender.sendTransaction(tx);
 
-    const ethBalance = await ethers.provider.getBalance(deployedAddess);
+    const ethBalance = await ethers.provider.getBalance(deployedAddress);
     expect(ethBalance).to.equal(ethers.parseEther("1.0"));
   });
 
   it("should withdraw the specified amount of ETH", async function () {
     const { smartWallet, ethSender } = await loadFixture(deployContracts);
-    const deployedAddess = await smartWallet.getAddress();
+    const deployedAddress = await smartWallet.getAddress();
 
     const tx = {
-      to: deployedAddess,
+      to: deployedAddress,
       value: ethers.parseEther("1.0"),
     };
 
     await ethSender.sendTransaction(tx);
     await smartWallet.withdrawEth(ethers.parseEther("0.5"));
-    const balanceAfter = await ethers.provider.getBalance(deployedAddess);
+    const balanceAfter = await ethers.provider.getBalance(deployedAddress);
 
     expect(balanceAfter).to.equal(ethers.parseEther("0.5"));
   });
