@@ -23,13 +23,21 @@ describe("SmartWallet", function () {
   //use loadFixture to reset Hardhat Network to desired state before each test case
   async function deployContracts() {
     //initialize accounts for deploying smart wallet
-    const [owner, tokenProvider, ethSender] = await ethers.getSigners();
+    const [owner, tokenProvider, ethSender, trader, recipient] =
+      await ethers.getSigners();
     weth = new ethers.Contract(WETH_TOKEN.address, erc20Abi, owner);
     //deploy acount abstraction contract using owner account
     smartWalletFactory = (await ethers.getContractFactory(
       "SmartWallet"
     )) as SmartWallet__factory;
-    smartWallet = await smartWalletFactory.connect(owner).deploy();
+    smartWallet = await smartWalletFactory
+      .connect(owner)
+      .deploy(
+        owner,
+        trader,
+        "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
+        "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+      );
 
     //deploy ERC20 token contract using tokenProvider account
     myTokenFactory = (await ethers.getContractFactory(
@@ -37,113 +45,179 @@ describe("SmartWallet", function () {
     )) as MyToken__factory;
     myToken = await myTokenFactory.connect(tokenProvider).deploy();
 
-    return { owner, tokenProvider, ethSender, smartWallet, myToken };
+    return {
+      owner,
+      tokenProvider,
+      ethSender,
+      smartWallet,
+      myToken,
+      trader,
+      recipient,
+    };
   }
 
-  it("should have an initial ETH balance of 0", async function () {
-    const { smartWallet } = await loadFixture(deployContracts);
-    const ethBalance = await ethers.provider.getBalance(
-      smartWallet.getAddress()
+  async function addTraderAddress(
+    smartWallet: SmartWallet,
+    trader: `0x${string}`
+  ) {
+    await smartWallet.addTraderAddress(trader);
+  }
+
+  describe("Permissions", () => {
+    it("should allow owner to add to withdrawal whitelist");
+
+    it("should not allow non-owner to add to withdrawal whitelist");
+
+    it("should allow owner to add to trader whitelist");
+
+    it("should not allow non-owner to add to trader whitelist");
+
+    it("should allow owner transfership");
+
+    it("should not allow non-trader to swap");
+
+    it("should not allow non-whitelisted address to receive ETH withdrawals");
+
+    it("should not allow non-whitelisted address to receive ERC20 withdrawals");
+
+    it(
+      "should not allow removed whitelisted address to receive ETH withdrawals"
     );
-    expect(ethBalance).to.equal(0);
   });
 
-  it("should be able to receive ETH", async function () {
-    const { smartWallet, ethSender } = await loadFixture(deployContracts);
-    const deployedAddress = await smartWallet.getAddress();
+  describe("Withdrawals", () => {
+    it("should have an initial ETH balance of 0", async function () {
+      const { smartWallet } = await loadFixture(deployContracts);
+      const ethBalance = await ethers.provider.getBalance(
+        smartWallet.getAddress()
+      );
+      expect(ethBalance).to.equal(0);
+    });
 
-    const tx = {
-      to: deployedAddress,
-      value: ethers.parseEther("1.0"),
-    };
+    it("should be able to receive ETH", async function () {
+      const { smartWallet, ethSender } = await loadFixture(deployContracts);
+      const deployedAddress = await smartWallet.getAddress();
 
-    await ethSender.sendTransaction(tx);
+      const tx = {
+        to: deployedAddress,
+        value: ethers.parseEther("1.0"),
+      };
 
-    const ethBalance = await ethers.provider.getBalance(deployedAddress);
-    expect(ethBalance).to.equal(ethers.parseEther("1.0"));
+      await ethSender.sendTransaction(tx);
+
+      const ethBalance = await ethers.provider.getBalance(deployedAddress);
+      expect(ethBalance).to.equal(ethers.parseEther("1.0"));
+    });
+
+    it("should withdraw the specified amount of ETH", async function () {
+      const { smartWallet, ethSender, recipient } = await loadFixture(deployContracts);
+      const deployedAddress = await smartWallet.getAddress();
+      const withdrawalAmount = 1;
+      await smartWallet.addWithdrawalAddress(recipient);
+
+      const tx = {
+        to: deployedAddress,
+        value: ethers.parseEther((withdrawalAmount * 2).toString()),
+      };
+      await ethSender.sendTransaction(tx);
+
+      const balanceBefore = await ethers.provider.getBalance(deployedAddress);
+
+      await smartWallet.withdrawEth(
+        ethers.parseEther(withdrawalAmount.toString()),
+        recipient.address
+      );
+      const balanceAfter = await ethers.provider.getBalance(deployedAddress);
+
+      const recipientBalance = await ethers.provider.getBalance(
+        deployedAddress
+      );
+      expect(recipientBalance).to.equal(
+        ethers.parseEther(withdrawalAmount.toString())
+      );
+
+      expect(balanceBefore - balanceAfter).to.equal(ethers.parseEther(withdrawalAmount.toString()));
+    });
+
+    it("should withdraw the specified amount of ERC20 token", async function () {
+      const { smartWallet, myToken, owner, recipient } = await loadFixture(
+        deployContracts
+      );
+      await smartWallet.addWithdrawalAddress(recipient);
+
+      //transfer token to SmartWallet contract
+      const deployedAddress = await smartWallet.getAddress();
+
+      const amountToMint = 134;
+      const amountToWithdraw = 50;
+      //transfer 100 token to Smart Wallet contract
+      await myToken.transfer(deployedAddress, amountToMint);
+
+      //check if transfer is succesful
+      const balance = await myToken.balanceOf(deployedAddress);
+      expect(balance).to.equal(amountToMint);
+
+      //withdraw tokens
+      await smartWallet.withdrawTokens(myToken.getAddress(), amountToWithdraw, recipient.address);
+
+      //check if withdrawal is succesful
+      const newBalance = await myToken.balanceOf(deployedAddress);
+      const recipientBalance = await myToken.balanceOf(recipient.address);
+      expect(recipientBalance).to.equal(
+        amountToWithdraw
+      );
+      expect(newBalance).to.equal(amountToMint - amountToWithdraw);
+    });
   });
 
-  it("should withdraw the specified amount of ETH", async function () {
-    const { smartWallet, ethSender } = await loadFixture(deployContracts);
-    const deployedAddress = await smartWallet.getAddress();
+  describe("Swap", () => {
+    it("should succeed", async function () {
+      const { smartWallet, ethSender, owner, trader } = await loadFixture(
+        deployContracts
+      );
 
-    const tx = {
-      to: deployedAddress,
-      value: ethers.parseEther("1.0"),
-    };
+      const amountToSwap = 1;
 
-    await ethSender.sendTransaction(tx);
-    await smartWallet.withdrawEth(ethers.parseEther("0.5"));
-    const balanceAfter = await ethers.provider.getBalance(deployedAddress);
+      const deployedAddress = await smartWallet.getAddress();
+      const tx = {
+        to: deployedAddress,
+        value: ethers.parseEther((1 * 10).toString()),
+      };
+      await ethSender.sendTransaction(tx);
 
-    expect(balanceAfter).to.equal(ethers.parseEther("0.5"));
-  });
+      const ethBalanceBefore = await ethers.provider.getBalance(
+        deployedAddress
+      );
+      // console.log({ ethBalanceBefore });
+      const wethBalanceBefore = await weth.balanceOf(deployedAddress);
+      // console.log({ wethBalanceBefore });
+      const usdc = new ethers.Contract(USDC_TOKEN.address, erc20Abi, owner);
+      const usdcBalanceBefore = await usdc.balanceOf(deployedAddress);
+      // console.log({ usdcBalanceBefore });
 
-  it("should withdraw the specified amount of ERC20 token", async function () {
-    const { smartWallet, myToken, owner } = await loadFixture(deployContracts);
+      const route = await getRoute(
+        deployedAddress,
+        WETH_TOKEN,
+        USDC_TOKEN,
+        amountToSwap
+      );
+      await smartWallet.connect(trader).swap(
+        WETH_TOKEN.address,
+        USDC_TOKEN.address,
+        fromReadableAmount(amountToSwap, 18),
+        BigInt(0),
+        route?.methodParameters?.calldata
+      );
 
-    //transfer token to SmartWallet contract
-    const contractAddress = await smartWallet.getAddress();
+      const ethBalanceAfter = await ethers.provider.getBalance(deployedAddress);
+      // console.log({ ethBalanceAfter });
 
-    //transfer 100 token to Smart Wallet contract
-    await myToken.transfer(contractAddress, 100);
+      const wethBalanceAfter = await weth.balanceOf(deployedAddress);
+      // console.log({ wethBalanceAfter });
+      const usdcBalanceAfter = await usdc.balanceOf(deployedAddress);
+      // console.log({ usdcBalanceAfter });
+    });
 
-    //check if transfer is succesful
-    const balance = await myToken.balanceOf(contractAddress);
-    expect(balance).to.equal(100);
-
-    //withdraw tokens
-    await smartWallet.withdrawTokens(myToken.getAddress(), 50);
-
-    //check if withdrawal is succesful
-    const newBalance = await myToken.balanceOf(contractAddress);
-    const ownerWalletBalance = await myToken.balanceOf(owner.address);
-    expect(ownerWalletBalance).to.equal(50);
-    expect(newBalance).to.equal(50);
-  });
-
-  it("should be able to swap ETH", async function () {
-    const { smartWallet, ethSender, owner } = await loadFixture(
-      deployContracts
-    );
-
-    const amountToSwap = 1;
-
-    const deployedAddress = await smartWallet.getAddress();
-    const tx = {
-      to: deployedAddress,
-      value: ethers.parseEther((1 * 10).toString()),
-    };
-    await ethSender.sendTransaction(tx);
-
-    const ethBalanceBefore = await ethers.provider.getBalance(deployedAddress);
-    console.log({ ethBalanceBefore });
-    const wethBalanceBefore = await weth.balanceOf(deployedAddress);
-    console.log({ wethBalanceBefore });
-    const usdc = new ethers.Contract(USDC_TOKEN.address, erc20Abi, owner);
-    const usdcBalanceBefore = await usdc.balanceOf(deployedAddress);
-    console.log({ usdcBalanceBefore });
-
-    const route = await getRoute(
-      deployedAddress,
-      WETH_TOKEN,
-      USDC_TOKEN,
-      amountToSwap
-    );
-    await smartWallet.swap(
-      WETH_TOKEN.address,
-      USDC_TOKEN.address,
-      fromReadableAmount(amountToSwap, 18),
-      BigInt(0),
-      route?.methodParameters?.calldata
-    );
-
-    const ethBalanceAfter = await ethers.provider.getBalance(deployedAddress);
-    console.log({ ethBalanceAfter });
-
-    const wethBalanceAfter = await weth.balanceOf(deployedAddress);
-    console.log({ wethBalanceAfter });
-    const usdcBalanceAfter = await usdc.balanceOf(deployedAddress);
-    console.log({ usdcBalanceAfter });
+    it("should fail if less than min out");
   });
 });
