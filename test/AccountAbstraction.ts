@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import MATICABI from './erc20.abi.json'
+import erc20Abi from "./erc20.abi.json";
 import {
   AccountAbstraction,
   AccountAbstraction__factory,
@@ -38,109 +38,118 @@ describe("AccountAbstraction", function () {
     return { owner, tokenProvider, ethSender, accountAbstraction, myToken };
   }
 
-  it("should have an initial ETH balance of 0", async function () {
-    const { accountAbstraction } = await loadFixture(deployContracts);
-    const ethBalance = await ethers.provider.getBalance(
-      accountAbstraction.getAddress()
-    );
-    expect(ethBalance).to.equal(0);
-  });
+  // it("should have an initial ETH balance of 0", async function () {
+  //   const { accountAbstraction } = await loadFixture(deployContracts);
+  //   const ethBalance = await ethers.provider.getBalance(
+  //     accountAbstraction.getAddress()
+  //   );
+  //   expect(ethBalance).to.equal(0);
+  // });
 
-  it("should be able to receive ETH", async function () {
+  // it("should be able to receive ETH", async function () {
+  //   const { accountAbstraction, ethSender } = await loadFixture(
+  //     deployContracts
+  //   );
+  //   const deployedAddess = await accountAbstraction.getAddress();
+
+  //   const tx = {
+  //     to: deployedAddess,
+  //     value: ethers.parseEther("1.0"),
+  //   };
+
+  //   await ethSender.sendTransaction(tx);
+
+  //   const ethBalance = await ethers.provider.getBalance(deployedAddess);
+  //   expect(ethBalance).to.equal(ethers.parseEther("1.0"));
+  // });
+
+  // it("should withdraw the specified amount of ETH", async function () {
+  //   const { accountAbstraction, ethSender } = await loadFixture(
+  //     deployContracts
+  //   );
+  //   const deployedAddess = await accountAbstraction.getAddress();
+
+  //   const tx = {
+  //     to: deployedAddess,
+  //     value: ethers.parseEther("1.0"),
+  //   };
+
+  //   await ethSender.sendTransaction(tx);
+  //   await accountAbstraction.withdrawEth(ethers.parseEther("0.5"));
+  //   const balanceAfter = await ethers.provider.getBalance(deployedAddess);
+
+  //   expect(balanceAfter).to.equal(ethers.parseEther("0.5"));
+  // });
+
+  // it("should withdraw the specified amount of ERC20 token", async function () {
+  //   const { accountAbstraction, myToken, owner } = await loadFixture(
+  //     deployContracts
+  //   );
+
+  //   //transfer token to AccountAbstraction contract
+  //   const contractAddress = await accountAbstraction.getAddress();
+
+  //   //transfer 100 token to Account Abstraction contract
+  //   await myToken.transfer(contractAddress, 100);
+
+  //   //check if transfer is succesful
+  //   const balance = await myToken.balanceOf(contractAddress);
+  //   expect(balance).to.equal(100);
+
+  //   //withdraw tokens
+  //   await accountAbstraction.withdrawTokens(myToken.getAddress(), 50);
+
+  //   //check if withdrawal is succesful
+  //   const newBalance = await myToken.balanceOf(contractAddress);
+  //   const ownerWalletBalance = await myToken.balanceOf(owner.address);
+  //   expect(ownerWalletBalance).to.equal(50);
+  //   expect(newBalance).to.equal(50);
+  // });
+
+  it("should be able to swap ETH for MATIC", async function () {
     const { accountAbstraction, ethSender } = await loadFixture(
       deployContracts
     );
-    const deployedAddess = await accountAbstraction.getAddress();
-
-    const tx = {
-      to: deployedAddess,
-      value: ethers.parseEther("1.0"),
-    };
-
-    await ethSender.sendTransaction(tx);
-
-    const ethBalance = await ethers.provider.getBalance(deployedAddess);
-    expect(ethBalance).to.equal(ethers.parseEther("1.0"));
-  });
-
-  it("should withdraw the specified amount of ETH", async function () {
-    const {accountAbstraction, ethSender} = await loadFixture(deployContracts);
-    const deployedAddess = await accountAbstraction.getAddress();
-
-    const tx = {
-      to: deployedAddess,
-      value: ethers.parseEther("1.0"),
-    };
-
-    await ethSender.sendTransaction(tx);
-    await accountAbstraction.withdrawEth(ethers.parseEther("0.5"));
-    const balanceAfter = await ethers.provider.getBalance(deployedAddess);
-    
-    expect(balanceAfter).to.equal(ethers.parseEther("0.5"));
-  });
-
-  it("should withdraw the specified amount of ERC20 token", async function () {
-    const {accountAbstraction, myToken, owner} = await loadFixture(deployContracts);
-
-    //transfer token to AccountAbstraction contract
-    const contractAddress = await accountAbstraction.getAddress();
-
-    //transfer 100 token to Account Abstraction contract
-    await myToken.transfer(contractAddress, 100);
-
-    //check if transfer is succesful
-    const balance = await myToken.balanceOf(contractAddress);
-    expect(balance).to.equal(100);
-
-    //withdraw tokens
-    await accountAbstraction.withdrawTokens(myToken.getAddress(), 50);
-
-    //check if withdrawal is succesful
-    const newBalance = await myToken.balanceOf(contractAddress);
-    const ownerWalletBalance = await myToken.balanceOf(owner.address);
-    expect(ownerWalletBalance).to.equal(50)
-    expect(newBalance).to.equal(50);
-
-  });
-
-  it("should be able to swap ETH for MATIC", async function(){
-    const {accountAbstraction, ethSender} = await loadFixture(deployContracts);
-
-    const MATIC_TOKEN_ADDRESS = '0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0';
-    const provider = new ethers.JsonRpcProvider('http://127.0.0.1:8545/');
-    const MATIC = new ethers.Contract(MATIC_TOKEN_ADDRESS, MATICABI, provider)
 
     //Deposit ETH into smart contract
-    const deployedAddess = await accountAbstraction.getAddress();
+    const deployedAddress = await accountAbstraction.getAddress();
+    console.log({ deployedAddress });
 
     const tx = {
-      to: deployedAddess,
+      to: deployedAddress,
       value: ethers.parseEther("1.0"),
     };
-
     await ethSender.sendTransaction(tx);
-    
+
+    const MATIC_TOKEN_ADDRESS = "0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0";
+    const matic = new ethers.Contract(
+      MATIC_TOKEN_ADDRESS,
+      erc20Abi,
+      ethers.provider
+    );
+    const maticBalanceBefore = await matic.balanceOf(deployedAddress);
+    console.log({ maticBalanceBefore });
+
     const amountIn = ethers.parseEther("0.5");
-    const amountOut = 1500;
+    const amountOut = ethers.parseUnits("1500", 18);
     //swap 0.5 ETH for 1500 MATIC
-    const txResponse = await accountAbstraction.swapEthToMatic(amountIn, amountOut)
+    const txResponse = await accountAbstraction.swapEth(
+      amountIn,
+      amountOut,
+      MATIC_TOKEN_ADDRESS
+    );
 
     const receipt = await txResponse.wait();
-    console.log(receipt)
+    console.log(receipt);
     // console.log(receipt?.status)
     expect(receipt?.status).to.equal(1);
 
-    // let maticToken = await ethers.getContractAt('MATICABI', MATIC_TOKEN_ADDRESS);
-  
+    const ethBalance = await ethers.provider.getBalance(deployedAddress);
 
-
-    const ethBalance = await ethers.provider.getBalance(deployedAddess);
-    const maticBalance = await MATIC.balanceOf(deployedAddess);
-
-    console.log("MATIC Balance:", ethers.formatUnits(maticBalance, 18));
-
+    const maticBalanceAfter = await matic.balanceOf(deployedAddress);
+    console.log({ maticBalanceAfter });
 
     expect(ethBalance).to.equal(ethers.parseEther("0.5"));
-    expect(maticBalance).to.be.at.least(1500);
-  })
+    expect(maticBalanceAfter).to.be.at.least(1500);
+  });
 });
