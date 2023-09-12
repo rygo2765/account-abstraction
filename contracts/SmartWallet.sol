@@ -4,7 +4,6 @@ pragma solidity ^0.8.15;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "hardhat/console.sol";
 
 interface IWETH9 {
     function deposit() external payable;
@@ -111,37 +110,20 @@ contract SmartWallet {
         uint256 minOut,
         bytes calldata data
     ) external onlyTrader returns (uint256 actualOut) {
-        // wrap ETH
         if (inToken == weth && address(this).balance > 0) {
             IWETH9(weth).deposit{value: address(this).balance}();
         }
         uint256 inTokenBefore = IERC20(inToken).balanceOf(address(this));
-        // console.log("inTokenBefore: ");
-        // console.log(inTokenBefore);
         uint256 outTokenBefore = IERC20(outToken).balanceOf(address(this));
-        // console.log("outTokenBefore: ");
-        // console.log(outTokenBefore);
 
-        // Approve spend
         IERC20(inToken).safeApprove(uniRouter, amount);
 
-        // Swap
         (bool success, ) = address(uniRouter).call{value: 0}(data);
         require(success, "Swap failed");
 
-        // CHECK: actualOut > minOut
         uint256 inTokenAfter = IERC20(inToken).balanceOf(address(this));
-        // console.log("inTokenAfter: ");
-        // console.log(inTokenAfter);
-
         uint256 outTokenAfter = IERC20(outToken).balanceOf(address(this));
-        // console.log("outTokenAfter: ");
-        // console.log(outTokenAfter);
-
         actualOut = outTokenAfter - outTokenBefore;
-        // console.log("actualOut: ");
-        // console.log(actualOut);
-
         uint256 spent = inTokenBefore - inTokenAfter;
         require(actualOut > minOut, "Out amount less than min out");
         require(spent == amount, "Did not spend desired amount");
