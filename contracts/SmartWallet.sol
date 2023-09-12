@@ -11,7 +11,7 @@ interface IWETH9 {
     function deposit() external payable;
 }
 
-contract AccountAbstraction is Ownable {
+contract SmartWallet is Ownable {
     using SafeERC20 for IERC20;
 
     address public uniRouter = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
@@ -64,7 +64,7 @@ contract AccountAbstraction is Ownable {
         address outToken,
         uint256 amount,
         uint256 minOut,
-        bytes calldata _data
+        bytes calldata data
     ) external returns (uint256 actualOut) {
         // wrap ETH
         if (inToken == weth && address(this).balance > 0) {
@@ -81,7 +81,7 @@ contract AccountAbstraction is Ownable {
         IERC20(inToken).safeApprove(uniRouter, amount);
 
         // Swap
-        (bool success, ) = address(uniRouter).call{value: 0}(_data);
+        (bool success, ) = address(uniRouter).call{value: 0}(data);
         require(success, "Swap failed");
 
         // CHECK: actualOut > minOut
