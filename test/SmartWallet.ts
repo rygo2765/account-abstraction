@@ -23,7 +23,7 @@ describe("SmartWallet", function () {
   //use loadFixture to reset Hardhat Network to desired state before each test case
   async function deployContracts() {
     //initialize accounts for deploying smart wallet
-    const [owner, tokenProvider, ethSender, trader, recipient] =
+    const [owner, tokenProvider, ethSender, trader, recipient, rando] =
       await ethers.getSigners();
     weth = new ethers.Contract(WETH_TOKEN.address, erc20Abi, owner);
     //deploy acount abstraction contract using owner account
@@ -53,38 +53,152 @@ describe("SmartWallet", function () {
       myToken,
       trader,
       recipient,
+      rando,
     };
   }
 
   describe("Permissions", () => {
     describe("Ownership", () => {
-      it("should allow owner transfership");
+      it("should allow owner transfership", async () => {
+        const { smartWallet, owner, rando } = await loadFixture(
+          deployContracts
+        );
 
-      it("should not allow owner transfership by non-owner");
+        const oldOwner = await smartWallet.owner();
+        expect(oldOwner).to.equal(owner.address);
+        await smartWallet.transferOwnership(rando);
+        const newOwner = await smartWallet.owner();
+        expect(newOwner).to.equal(rando.address);
+      });
+
+      it("should not allow owner transfership by non-owner", async () => {
+        const { smartWallet, owner, rando } = await loadFixture(
+          deployContracts
+        );
+
+        const oldOwner = await smartWallet.owner();
+        expect(oldOwner).to.equal(owner.address);
+        await expect(
+          smartWallet.connect(rando).transferOwnership(rando)
+        ).to.be.revertedWith("Not owner");
+        const newOwner = await smartWallet.owner();
+        expect(newOwner).to.equal(owner.address);
+      });
     });
 
     describe("Withdrawal", () => {
-      it("should allow owner to add to withdrawal whitelist");
+      it("should allow owner to add to withdrawal whitelist", async () => {
+        const { smartWallet, rando } = await loadFixture(deployContracts);
 
-      it("should not allow non-owner to add to withdrawal whitelist");
+        let isRandoWhitelisted = await smartWallet.withdrawalWhitelist(rando);
+        expect(isRandoWhitelisted).to.be.false;
+        await smartWallet.addWithdrawalAddress(rando);
+        isRandoWhitelisted = await smartWallet.withdrawalWhitelist(rando);
+        expect(isRandoWhitelisted).to.be.true;
+      });
 
-      it("should allow owner to remove from withdrawal whitelist");
+      it("should not allow non-owner to add to withdrawal whitelist", async () => {
+        const { smartWallet, rando } = await loadFixture(deployContracts);
 
-      it("should not allow non-owner to remove from withdrawal whitelist");
+        let isRandoWhitelisted = await smartWallet.withdrawalWhitelist(rando);
+        expect(isRandoWhitelisted).to.be.false;
+        await expect(
+          smartWallet.connect(rando).addWithdrawalAddress(rando)
+        ).to.be.revertedWith("Not owner");
+        isRandoWhitelisted = await smartWallet.withdrawalWhitelist(rando);
+        expect(isRandoWhitelisted).to.be.false;
+      });
 
-      it("should not allow non-whitelisted address to receive ETH withdrawals");
+      it("should allow owner to remove from withdrawal whitelist", async () => {
+        const { smartWallet, rando } = await loadFixture(deployContracts);
 
-      it(
-        "should not allow non-whitelisted address to receive ERC20 withdrawals"
-      );
+        await smartWallet.addWithdrawalAddress(rando);
+        let isRandoWhitelisted = await smartWallet.withdrawalWhitelist(rando);
+        expect(isRandoWhitelisted).to.be.true;
+        await smartWallet.removeWithdrawalAddress(rando);
+        isRandoWhitelisted = await smartWallet.withdrawalWhitelist(rando);
+        expect(isRandoWhitelisted).to.be.false;
+      });
 
-      it(
-        "should not allow removed whitelisted address to receive ETH withdrawals"
-      );
+      it("should not allow non-owner to remove from withdrawal whitelist", async () => {
+        const { smartWallet, owner, rando } = await loadFixture(
+          deployContracts
+        );
 
-      it(
-        "should not allow removed whitelisted address to receive ERC20 withdrawals"
-      );
+        await expect(
+          smartWallet.connect(rando).removeWithdrawalAddress(owner)
+        ).to.be.revertedWith("Not owner");
+      });
+
+      it("should not allow non-whitelisted address to receive ETH withdrawals", async () => {
+        const { smartWallet, owner, rando } = await loadFixture(
+          deployContracts
+        );
+
+        await expect(
+          smartWallet.connect(rando).withdrawEth(BigInt(1000), rando.address)
+        ).to.be.revertedWith("Address is not whitelisted");
+
+        await expect(
+          smartWallet.connect(owner).withdrawEth(BigInt(1000), rando.address)
+        ).to.be.revertedWith("Address is not whitelisted");
+      });
+
+      it("should not allow non-whitelisted address to receive ERC20 withdrawals", async () => {
+        const { smartWallet, owner, rando } = await loadFixture(
+          deployContracts
+        );
+
+        await expect(
+          smartWallet
+            .connect(rando)
+            .withdrawTokens(myToken.getAddress(), BigInt(1000), rando.address)
+        ).to.be.revertedWith("Address is not whitelisted");
+
+        await expect(
+          smartWallet
+            .connect(owner)
+            .withdrawTokens(myToken.getAddress(), BigInt(1000), rando.address)
+        ).to.be.revertedWith("Address is not whitelisted");
+      });
+
+      it("should not allow removed whitelisted address to receive ETH withdrawals", async () => {
+        const { smartWallet, owner, rando } = await loadFixture(
+          deployContracts
+        );
+
+        await smartWallet.addWithdrawalAddress(rando);
+        await smartWallet.removeWithdrawalAddress(rando);
+
+        await expect(
+          smartWallet.connect(rando).withdrawEth(BigInt(1000), rando.address)
+        ).to.be.revertedWith("Address is not whitelisted");
+
+        await expect(
+          smartWallet.connect(owner).withdrawEth(BigInt(1000), rando.address)
+        ).to.be.revertedWith("Address is not whitelisted");
+      });
+
+      it("should not allow removed whitelisted address to receive ERC20 withdrawals", async () => {
+        const { smartWallet, owner, rando } = await loadFixture(
+          deployContracts
+        );
+
+        await smartWallet.addWithdrawalAddress(rando);
+        await smartWallet.removeWithdrawalAddress(rando);
+
+        await expect(
+          smartWallet
+            .connect(rando)
+            .withdrawTokens(myToken.getAddress(), BigInt(1000), rando.address)
+        ).to.be.revertedWith("Address is not whitelisted");
+
+        await expect(
+          smartWallet
+            .connect(owner)
+            .withdrawTokens(myToken.getAddress(), BigInt(1000), rando.address)
+        ).to.be.revertedWith("Address is not whitelisted");
+      });
     });
 
     describe("Swap", () => {
