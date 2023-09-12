@@ -7,13 +7,23 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "hardhat/console.sol";
 
+interface IWETH9 {
+    function deposit() external payable;
+}
+
 contract AccountAbstraction is Ownable {
     using SafeERC20 for IERC20;
 
-    address public universalRouterAddress =
-        0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD;
+    address public uniRouter = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
+    address public weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
     event TokensWithdrawn(address indexed token, uint256 amount);
+    event Swapped(
+        address inToken,
+        uint256 amount,
+        address outToken,
+        uint256 actualOut
+    );
 
     //Receive tokens
     receive() external payable {}
@@ -49,47 +59,40 @@ contract AccountAbstraction is Ownable {
         emit TokensWithdrawn(_token, _amount);
     }
 
-    //function to swap tokens
-    // function swap(
-    //     address inToken,
-    //     address outToken,
-    //     uint256 amount,
-    //     uint256 minOut,
-    //     bool isEthSwap,
-    //     bytes calldata _data
-    // ) external onlyOwner returns (uint256 actualOut) {
+    function swap(
+        address inToken,
+        address outToken,
+        uint256 amount,
+        uint256 minOut,
+        bytes calldata _data
+    ) external returns (uint256 actualOut) {
+        // wrap ETH
+        if (inToken == weth) {
+            IWETH9(weth).deposit{value: amount}();
+        }
+        uint256 inTokenBefore = IERC20(inToken).balanceOf(address(this));
+        console.log(inTokenBefore);
+        uint256 outTokenBefore = IERC20(outToken).balanceOf(address(this));
+        console.log(outTokenBefore);
 
-    //     address uniswapRouterContractAddress = 0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD;
+        // Approve spend
+        IERC20(inToken).safeApprove(uniRouter, amount);
 
-    // }
-
-    function swapEth(
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address token
-    ) external onlyOwner {
-        console.log(amountIn);
-        console.log(amountOutMin);
-        //Prepare the token path (ETH to MATIC)
-        address[] memory path = new address[](2);
-        path[0] = address(0);
-        path[1] = token;
-
-        //Encode the parameters
-        bytes memory data = abi.encodeWithSelector(
-            bytes4(keccak256("execute(bytes,bytes[])")),
-            bytes1(0x00),
-            abi.encode(
-                address(this), //Recipient
-                amountIn, //Amount of Eth to swap
-                amountOutMin, //Minimum MATIC you expect to receive
-                path, //Token path
-                address(this) //payer is the user
-            )
+        // Swap
+        (bool success, bytes memory res) = address(uniRouter).call{value: 0}(
+            _data
         );
+        require(success, "Swap failed");
 
-        (bool success, ) = universalRouterAddress.call{value: amountIn}(data);
-        console.log(success);
-        // require(success, "Swap failed");
+        // CHECK: actualOut > minOut
+        uint256 inTokenAfter = IERC20(inToken).balanceOf(address(this));
+        console.log(inTokenAfter);
+        uint256 outTokenAfter = IERC20(outToken).balanceOf(address(this));
+        console.log(outTokenAfter);
+        uint256 actualOut = outTokenAfter - inTokenAfter;
+        console.log(actualOut);
+        require(actualOut > minOut, "Out amount less than min out");
+
+        emit Swapped(address(inToken), amount, address(outToken), actualOut);
     }
 }

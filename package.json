@@ -6,8 +6,12 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.9.3",
+    "@uniswap/sdk-core": "^4.0.7",
+    "@uniswap/smart-order-router": "^3.16.22",
     "@uniswap/v3-core": "^1.0.1",
     "@uniswap/v3-periphery": "^1.4.3",
+    "@uniswap/v3-sdk": "^3.10.0",
+    "ethers5": "npm:ethers@5",
     "dotenv": "^16.3.1",
     "dotenv-cli": "^7.3.0"
   },
@@ -19,7 +23,8 @@
   },
   "scripts": {
     "test": "dotenv hardhat test",
-    "start": "dotenv hardhat node"
+    "start": "dotenv hardhat node",
+    "example:swap": "dotenv hardhat run scripts/swap.ts"
   },
   "author": "",
   "license": "ISC"
