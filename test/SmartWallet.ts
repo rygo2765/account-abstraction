@@ -56,33 +56,48 @@ describe("SmartWallet", function () {
     };
   }
 
-  async function addTraderAddress(
-    smartWallet: SmartWallet,
-    trader: `0x${string}`
-  ) {
-    await smartWallet.addTraderAddress(trader);
-  }
-
   describe("Permissions", () => {
-    it("should allow owner to add to withdrawal whitelist");
+    describe("Ownership", () => {
+      it("should allow owner transfership");
 
-    it("should not allow non-owner to add to withdrawal whitelist");
+      it("should not allow owner transfership by non-owner");
+    });
 
-    it("should allow owner to add to trader whitelist");
+    describe("Withdrawal", () => {
+      it("should allow owner to add to withdrawal whitelist");
 
-    it("should not allow non-owner to add to trader whitelist");
+      it("should not allow non-owner to add to withdrawal whitelist");
 
-    it("should allow owner transfership");
+      it("should allow owner to remove from withdrawal whitelist");
 
-    it("should not allow non-trader to swap");
+      it("should not allow non-owner to remove from withdrawal whitelist");
 
-    it("should not allow non-whitelisted address to receive ETH withdrawals");
+      it("should not allow non-whitelisted address to receive ETH withdrawals");
 
-    it("should not allow non-whitelisted address to receive ERC20 withdrawals");
+      it(
+        "should not allow non-whitelisted address to receive ERC20 withdrawals"
+      );
 
-    it(
-      "should not allow removed whitelisted address to receive ETH withdrawals"
-    );
+      it(
+        "should not allow removed whitelisted address to receive ETH withdrawals"
+      );
+
+      it(
+        "should not allow removed whitelisted address to receive ERC20 withdrawals"
+      );
+    });
+
+    describe("Swap", () => {
+      it("should allow owner to add to trader whitelist");
+
+      it("should not allow non-owner to add to trader whitelist");
+
+      it("should allow owner to remove from trader whitelist");
+
+      it("should not allow non-owner to remove from trader whitelist");
+
+      it("should not allow non-trader to swap");
+    });
   });
 
   describe("Withdrawals", () => {
@@ -110,7 +125,9 @@ describe("SmartWallet", function () {
     });
 
     it("should withdraw the specified amount of ETH", async function () {
-      const { smartWallet, ethSender, recipient } = await loadFixture(deployContracts);
+      const { smartWallet, ethSender, recipient } = await loadFixture(
+        deployContracts
+      );
       const deployedAddress = await smartWallet.getAddress();
       const withdrawalAmount = 1;
       await smartWallet.addWithdrawalAddress(recipient);
@@ -136,7 +153,9 @@ describe("SmartWallet", function () {
         ethers.parseEther(withdrawalAmount.toString())
       );
 
-      expect(balanceBefore - balanceAfter).to.equal(ethers.parseEther(withdrawalAmount.toString()));
+      expect(balanceBefore - balanceAfter).to.equal(
+        ethers.parseEther(withdrawalAmount.toString())
+      );
     });
 
     it("should withdraw the specified amount of ERC20 token", async function () {
@@ -158,14 +177,16 @@ describe("SmartWallet", function () {
       expect(balance).to.equal(amountToMint);
 
       //withdraw tokens
-      await smartWallet.withdrawTokens(myToken.getAddress(), amountToWithdraw, recipient.address);
+      await smartWallet.withdrawTokens(
+        myToken.getAddress(),
+        amountToWithdraw,
+        recipient.address
+      );
 
       //check if withdrawal is succesful
       const newBalance = await myToken.balanceOf(deployedAddress);
       const recipientBalance = await myToken.balanceOf(recipient.address);
-      expect(recipientBalance).to.equal(
-        amountToWithdraw
-      );
+      expect(recipientBalance).to.equal(amountToWithdraw);
       expect(newBalance).to.equal(amountToMint - amountToWithdraw);
     });
   });
@@ -201,13 +222,15 @@ describe("SmartWallet", function () {
         USDC_TOKEN,
         amountToSwap
       );
-      await smartWallet.connect(trader).swap(
-        WETH_TOKEN.address,
-        USDC_TOKEN.address,
-        fromReadableAmount(amountToSwap, 18),
-        BigInt(0),
-        route?.methodParameters?.calldata
-      );
+      await smartWallet
+        .connect(trader)
+        .swap(
+          WETH_TOKEN.address,
+          USDC_TOKEN.address,
+          fromReadableAmount(amountToSwap, 18),
+          BigInt(0),
+          route?.methodParameters?.calldata
+        );
 
       const ethBalanceAfter = await ethers.provider.getBalance(deployedAddress);
       // console.log({ ethBalanceAfter });
