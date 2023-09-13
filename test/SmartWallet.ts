@@ -209,8 +209,7 @@ describe("SmartWallet", function () {
     describe("Swap", () => {
       it("should allow owner to add to trader whitelist", async () => {
         const { smartWallet, rando } = await loadFixture(deployContracts);
-
-        //do i need to explicitly connect to owner?
+        
         await smartWallet.addTraderAddress(rando.address);
         const newTrader = await smartWallet.isWhitelistedTrader(rando.address);
 
