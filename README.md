@@ -20,7 +20,7 @@ DEPLOYER_PRIVATE_KEY=""
 ## Development
 ```sh
 pnpm i
-npm run test
+npm run test # MAINNET_RPC must be set!
 ```
 
 ## Deployment
