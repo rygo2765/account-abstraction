@@ -6,7 +6,7 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       forking: {
-        url: process.env.MAINNET_FORK_RPC,
+        url: process.env.MAINNET_RPC,
       },
     },
   },
