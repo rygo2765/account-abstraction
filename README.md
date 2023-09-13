@@ -1,8 +1,6 @@
-# Sample Hardhat Project
+# Smart Wallet with Uniswap Integration
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
-
-Try running some of the following tasks:
+## Common Hardhat Commands:
 
 ```shell
 npx hardhat help
@@ -11,4 +9,22 @@ REPORT_GAS=true npx hardhat test
 npx hardhat node
 npx hardhat run scripts/deploy.ts
 ```
-# account-abstraction
+
+## Env Vars
+```sh
+MAINNET_RPC="https://eth.llamarpc.com"
+ARBITRUM_ONE_RPC="https://arbitrum.llamarpc.com"
+DEPLOYER_PRIVATE_KEY=""
+```
+
+## Development
+```sh
+pnpm i
+npm run test
+```
+
+## Deployment
+```sh
+npm run deploy # hardhat network
+npm run deploy:arbitrum # arbitrum one 42161
+```
