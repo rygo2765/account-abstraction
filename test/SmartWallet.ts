@@ -207,15 +207,123 @@ describe("SmartWallet", function () {
     });
 
     describe("Swap", () => {
-      it("should allow owner to add to trader whitelist");
+      it("should allow owner to add to trader whitelist", async () => {
+        const { smartWallet, owner, rando } = await loadFixture(deployContracts);
 
-      it("should not allow non-owner to add to trader whitelist");
+        await smartWallet.connect(owner).addTraderAddress(rando.address);
+        const newTrader = await smartWallet.isWhitelistedTrader(rando.address);
 
-      it("should allow owner to remove from trader whitelist");
+        expect(newTrader).to.equal(true);
+      });
 
-      it("should not allow non-owner to remove from trader whitelist");
+      it("should not allow non-owner to add to trader whitelist", async () => {
+        const { smartWallet, rando } = await loadFixture(deployContracts);
 
-      it("should not allow non-trader to swap");
+        await expect(
+          smartWallet.connect(rando).addTraderAddress(rando.address)
+        ).to.be.revertedWith("Not owner");
+        const newTrader = await smartWallet.isWhitelistedTrader(rando.address);
+
+        expect(newTrader).to.equal(false);
+      });
+
+      it("should allow owner to remove from trader whitelist", async () => {
+        const { smartWallet, owner, rando } = await loadFixture(deployContracts);
+
+        await smartWallet.connect(owner).addTraderAddress(rando.address);
+        const newTraderAdded = await smartWallet.isWhitelistedTrader(
+          rando.address
+        );
+        expect(newTraderAdded).to.equal(true);
+
+        await smartWallet.removeTraderAddress(rando.address);
+        const newTraderStatus = await smartWallet.isWhitelistedTrader(
+          rando.address
+        );
+        expect(newTraderStatus).to.equal(false);
+      });
+
+      it("should not allow non-owner to remove from trader whitelist", async () => {
+        const { smartWallet, owner, rando } = await loadFixture(deployContracts);
+
+        await smartWallet.connect(owner).addTraderAddress(rando.address);
+        const newTraderAdded = await smartWallet.isWhitelistedTrader(
+          rando.address
+        );
+        expect(newTraderAdded).to.equal(true);
+
+        await expect(
+          smartWallet.connect(rando).removeTraderAddress(rando.address)
+        ).to.be.revertedWith("Not owner");
+        const newTraderStatus = await smartWallet.isWhitelistedTrader(
+          rando.address
+        );
+        expect(newTraderStatus).to.equal(true);
+      });
+
+      it("should not allow non-trader to swap", async () => {
+        const { smartWallet, ethSender, owner, rando } = await loadFixture(
+          deployContracts
+        );
+
+        const amountToSwap = 1;
+        const amountToDeposit = amountToSwap * 10;
+
+        const deployedAddress = await smartWallet.getAddress();
+        const tx = {
+          to: deployedAddress,
+          value: ethers.parseEther(amountToDeposit.toString()),
+        };
+        await ethSender.sendTransaction(tx);
+
+        const ethBalanceBefore = await ethers.provider.getBalance(
+          deployedAddress
+        );
+        expect(ethBalanceBefore).to.equal(
+          ethers.parseEther(amountToDeposit.toString())
+        );
+
+        const wethBalanceBefore = await weth.balanceOf(deployedAddress);
+        expect(wethBalanceBefore).to.equal(0);
+        const usdc = new ethers.Contract(USDC_TOKEN.address, erc20Abi, owner);
+        const usdcBalanceBefore = await usdc.balanceOf(deployedAddress);
+        expect(usdcBalanceBefore).to.equal(0);
+
+        const whitelistedTrader = await smartWallet.isWhitelistedTrader(
+          rando.address
+        );
+        expect(whitelistedTrader).to.equal(false);
+
+        const route = await getRoute(
+          deployedAddress,
+          WETH_TOKEN,
+          USDC_TOKEN,
+          amountToSwap
+        );
+        await expect(
+          smartWallet
+            .connect(rando)
+            .swap(
+              WETH_TOKEN.address,
+              USDC_TOKEN.address,
+              fromReadableAmount(amountToSwap, 18),
+              BigInt(0),
+              route?.methodParameters?.calldata
+            )
+        ).to.be.revertedWith("Not trader");
+
+        const ethBalanceAfter = await ethers.provider.getBalance(
+          deployedAddress
+        );
+        expect(ethBalanceAfter).to.equal(
+          ethers.parseEther(amountToDeposit.toString())
+        );
+
+        const wethBalanceAfter = await weth.balanceOf(deployedAddress);
+        expect(wethBalanceAfter).to.equal(0);
+        const usdcBalanceAfter = await usdc.balanceOf(deployedAddress);
+        expect(usdcBalanceAfter).to.equal(0);
+      });
     });
   });
 
