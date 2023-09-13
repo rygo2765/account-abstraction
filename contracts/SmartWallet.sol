@@ -7,6 +7,8 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 interface IWETH9 {
     function deposit() external payable;
+
+    function withdraw(uint256) external payable;
 }
 
 contract SmartWallet {
@@ -96,7 +98,12 @@ contract SmartWallet {
         uint256 balance = IERC20(token).balanceOf(address(this));
         require(balance >= amount, "Insufficient balance");
 
-        IERC20(token).safeTransfer(to, amount);
+        if (token == weth) {
+            IWETH9(weth).withdraw(amount);
+            this.withdrawEth(amount, to);
+        } else {
+            IERC20(token).safeTransfer(to, amount);
+        }
     }
 
     function addTraderAddress(address _address) external onlyOwner {

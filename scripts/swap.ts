@@ -46,6 +46,7 @@ async function getRoute(
 }
 
 async function main() {
+  // @ts-ignore
   const [user] = await ethers.getSigners();
 
   const inToken = WETH_TOKEN;

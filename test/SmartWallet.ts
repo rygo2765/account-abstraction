@@ -425,6 +425,114 @@ describe("SmartWallet", function () {
       expect(recipientBalance).to.equal(amountToWithdraw);
       expect(newBalance).to.equal(amountToMint - amountToWithdraw);
     });
+
+    it("should withdraw weth as ETH", async function () {
+      const { smartWallet, myToken, owner, recipient } = await loadFixture(
+        deployContracts
+      );
+      const amount = 1000;
+
+      const weth = new ethers.Contract(
+        WETH_TOKEN.address,
+        [
+          {
+            constant: false,
+            inputs: [],
+            name: "deposit",
+            outputs: [],
+            payable: true,
+            stateMutability: "payable",
+            type: "function",
+          },
+          {
+            constant: false,
+            inputs: [
+              {
+                name: "dst",
+                type: "address",
+              },
+              {
+                name: "wad",
+                type: "uint256",
+              },
+            ],
+            name: "transfer",
+            outputs: [
+              {
+                name: "",
+                type: "bool",
+              },
+            ],
+            payable: false,
+            stateMutability: "nonpayable",
+            type: "function",
+          },
+          {
+            constant: true,
+            inputs: [
+              {
+                name: "",
+                type: "address",
+              },
+            ],
+            name: "balanceOf",
+            outputs: [
+              {
+                name: "",
+                type: "uint256",
+              },
+            ],
+            payable: false,
+            stateMutability: "view",
+            type: "function",
+          },
+        ],
+        owner
+      );
+
+      // @ts-ignore
+      const recipientInitialETHBalance = await ethers.provider.getBalance(
+        recipient.address
+      );
+
+      await weth.deposit({ value: amount });
+      await smartWallet.addWithdrawalAddress(recipient);
+
+      //transfer token to SmartWallet contract
+      // @ts-ignore
+      const deployedAddress = await smartWallet.getAddress();
+
+      await weth.transfer(deployedAddress, amount);
+
+      //check if transfer is succesful
+      const balance = await weth.balanceOf(deployedAddress);
+      expect(balance).to.equal(amount, "Transfer failed");
+
+      //withdraw tokens
+      await smartWallet.withdrawTokens(
+        // @ts-ignore
+        weth.getAddress(),
+        amount,
+        recipient.address
+      );
+
+      //check if withdrawal is succesful
+      const newBalance = await weth.balanceOf(deployedAddress);
+      const recipientWETHBalance = await weth.balanceOf(recipient.address);
+      // @ts-ignore
+      const recipientETHBalance = await ethers.provider.getBalance(
+        recipient.address
+      );
+      expect(recipientETHBalance).to.equal(
+        recipientInitialETHBalance + BigInt(amount),
+        "Recipient didnt receive"
+      );
+      expect(recipientWETHBalance).to.equal(
+        0,
+        "Recipient should not receive weth"
+      );
+      expect(newBalance).to.equal(0, "Why still balance?");
+    });
   });
 
   describe("Swap", () => {
