@@ -25,7 +25,12 @@ contract SmartWallet {
         uint256 actualOut
     );
 
-    constructor(address _owner, address _trader, address _uniRouter, address _weth) {
+    constructor(
+        address _owner,
+        address _trader,
+        address _uniRouter,
+        address _weth
+    ) {
         owner = _owner;
         traderWhitelist[_trader] = true;
         uniRouter = _uniRouter;
@@ -51,7 +56,10 @@ contract SmartWallet {
 
     function addWithdrawalAddress(address _address) external onlyOwner {
         require(_address != address(0), "Invalid address");
-        require(!withdrawalWhitelist[_address], "Address is already whitelisted");
+        require(
+            !withdrawalWhitelist[_address],
+            "Address is already whitelisted"
+        );
         withdrawalWhitelist[_address] = true;
     }
 
@@ -60,7 +68,9 @@ contract SmartWallet {
         withdrawalWhitelist[_address] = false;
     }
 
-    function isWhitelistedForWithdrawal(address _address) internal view returns (bool) {
+    function isWhitelistedForWithdrawal(
+        address _address
+    ) public view returns (bool) {
         return withdrawalWhitelist[_address];
     }
 
@@ -84,10 +94,7 @@ contract SmartWallet {
             " Invalid token addess or amount"
         );
         uint256 balance = IERC20(token).balanceOf(address(this));
-        require(
-            balance >= amount,
-            "Insufficient balance"
-        );
+        require(balance >= amount, "Insufficient balance");
 
         IERC20(token).safeTransfer(to, amount);
     }
@@ -101,6 +108,10 @@ contract SmartWallet {
     function removeTraderAddress(address _address) external onlyOwner {
         require(traderWhitelist[_address], "Address is not whitelisted");
         traderWhitelist[_address] = false;
+    }
+
+    function isWhitelistedTrader(address _address) public view returns (bool) {
+        return traderWhitelist[_address];
     }
 
     function swap(
