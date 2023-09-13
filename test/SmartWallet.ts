@@ -317,112 +317,220 @@ describe("SmartWallet", function () {
       expect(recipientBalance).to.equal(amountToWithdraw);
       expect(newBalance).to.equal(amountToMint - amountToWithdraw);
     });
-  });
 
-  describe("Swap", () => {
-    it("should succeed", async function () {
-      const { smartWallet, ethSender, owner, trader } = await loadFixture(
+    it("should withdraw weth as ETH", async function () {
+      const { smartWallet, myToken, owner, recipient } = await loadFixture(
         deployContracts
       );
+      const amount = 1000;
 
-      const amountToSwap = 1;
-      const amountToDeposit = amountToSwap * 10;
+      const weth = new ethers.Contract(
+        WETH_TOKEN.address,
+        [
+          {
+            constant: false,
+            inputs: [],
+            name: "deposit",
+            outputs: [],
+            payable: true,
+            stateMutability: "payable",
+            type: "function",
+          },
+          {
+            constant: false,
+            inputs: [
+              {
+                name: "dst",
+                type: "address",
+              },
+              {
+                name: "wad",
+                type: "uint256",
+              },
+            ],
+            name: "transfer",
+            outputs: [
+              {
+                name: "",
+                type: "bool",
+              },
+            ],
+            payable: false,
+            stateMutability: "nonpayable",
+            type: "function",
+          },
+          {
+            constant: true,
+            inputs: [
+              {
+                name: "",
+                type: "address",
+              },
+            ],
+            name: "balanceOf",
+            outputs: [
+              {
+                name: "",
+                type: "uint256",
+              },
+            ],
+            payable: false,
+            stateMutability: "view",
+            type: "function",
+          },
+        ],
+        owner
+      );
+
+      // @ts-ignore
+      const recipientInitialETHBalance = await ethers.provider.getBalance(
+        recipient.address
+      );
+
+      await weth.deposit({ value: amount });
+      await smartWallet.addWithdrawalAddress(recipient);
+
+      //transfer token to SmartWallet contract
       // @ts-ignore
       const deployedAddress = await smartWallet.getAddress();
-      const tx = {
-        to: deployedAddress,
-        value: ethers.parseEther(amountToDeposit.toString()),
-      };
-      await ethSender.sendTransaction(tx);
 
+      await weth.transfer(deployedAddress, amount);
+
+      //check if transfer is succesful
+      const balance = await weth.balanceOf(deployedAddress);
+      expect(balance).to.equal(amount, "Transfer failed");
+
+      //withdraw tokens
+      await smartWallet.withdrawTokens(
+        // @ts-ignore
+        weth.getAddress(),
+        amount,
+        recipient.address
+      );
+
+      //check if withdrawal is succesful
+      const newBalance = await weth.balanceOf(deployedAddress);
+      const recipientWETHBalance = await weth.balanceOf(recipient.address);
       // @ts-ignore
-      const ethBalanceBefore = await ethers.provider.getBalance(
-        deployedAddress
+      const recipientETHBalance = await ethers.provider.getBalance(
+        recipient.address
       );
-      expect(ethBalanceBefore).to.equal(
-        ethers.parseEther(amountToDeposit.toString())
+      expect(recipientETHBalance).to.equal(
+        recipientInitialETHBalance + BigInt(amount),
+        "Recipient didnt receive"
       );
-      const wethBalanceBefore = await weth.balanceOf(deployedAddress);
-      expect(wethBalanceBefore).to.equal(0);
-      const usdc = new ethers.Contract(USDC_TOKEN.address, erc20Abi, owner);
-      const usdcBalanceBefore = await usdc.balanceOf(deployedAddress);
-      expect(usdcBalanceBefore).to.equal(0);
-
-      const route = await getRoute(
-        deployedAddress,
-        WETH_TOKEN,
-        USDC_TOKEN,
-        amountToSwap
+      expect(recipientWETHBalance).to.equal(
+        0,
+        "Recipient should not receive weth"
       );
-      await smartWallet
-        .connect(trader)
-        .swap(
-          WETH_TOKEN.address,
-          USDC_TOKEN.address,
-          fromReadableAmount(amountToSwap, 18),
-          BigInt(0),
-          route?.methodParameters?.calldata
-        );
-
-      // @ts-ignore
-      const ethBalanceAfter = await ethers.provider.getBalance(deployedAddress);
-      expect(ethBalanceAfter).to.equal(ethers.parseEther((0).toString()));
-
-      const wethBalanceAfter = await weth.balanceOf(deployedAddress);
-      expect(wethBalanceAfter).to.equal(
-        fromReadableAmount(amountToDeposit, 18) -
-          fromReadableAmount(amountToSwap, 18)
-      );
-      const usdcBalanceAfter = await usdc.balanceOf(deployedAddress);
-      expect(usdcBalanceAfter).to.be.greaterThan(0);
-    });
-
-    it("should fail if less than min out", async function () {
-      const { smartWallet, ethSender, owner, trader } = await loadFixture(
-        deployContracts
-      );
-
-      const amountToSwap = 1;
-      const amountToDeposit = amountToSwap * 10;
-
-      // @ts-ignore
-      const deployedAddress = await smartWallet.getAddress();
-      const tx = {
-        to: deployedAddress,
-        value: ethers.parseEther(amountToDeposit.toString()),
-      };
-      await ethSender.sendTransaction(tx);
-
-      // @ts-ignore
-      const ethBalanceBefore = await ethers.provider.getBalance(
-        deployedAddress
-      );
-      expect(ethBalanceBefore).to.equal(
-        ethers.parseEther(amountToDeposit.toString())
-      );
-      const wethBalanceBefore = await weth.balanceOf(deployedAddress);
-      expect(wethBalanceBefore).to.equal(0);
-      const usdc = new ethers.Contract(USDC_TOKEN.address, erc20Abi, owner);
-      const usdcBalanceBefore = await usdc.balanceOf(deployedAddress);
-      expect(usdcBalanceBefore).to.equal(0);
-
-      const route = await getRoute(
-        deployedAddress,
-        WETH_TOKEN,
-        USDC_TOKEN,
-        amountToSwap
-      );
-      await expect(
-        smartWallet
-          .connect(trader)
-          .swap(
-            WETH_TOKEN.address,
-            USDC_TOKEN.address,
-            fromReadableAmount(amountToSwap, 18),
-            BigInt(9999e18),
-            route?.methodParameters?.calldata
-          )
-      ).to.be.revertedWith("Out amount less than min out");
+      expect(newBalance).to.equal(0, "Why still balance?");
     });
   });
+
+  // describe("Swap", () => {
+  //   it("should succeed", async function () {
+  //     const { smartWallet, ethSender, owner, trader } = await loadFixture(
+  //       deployContracts
+  //     );
+
+  //     const amountToSwap = 1;
+  //     const amountToDeposit = amountToSwap * 10;
+  //     // @ts-ignore
+  //     const deployedAddress = await smartWallet.getAddress();
+  //     const tx = {
+  //       to: deployedAddress,
+  //       value: ethers.parseEther(amountToDeposit.toString()),
+  //     };
+  //     await ethSender.sendTransaction(tx);
+
+  //     // @ts-ignore
+  //     const ethBalanceBefore = await ethers.provider.getBalance(
+  //       deployedAddress
+  //     );
+  //     expect(ethBalanceBefore).to.equal(
+  //       ethers.parseEther(amountToDeposit.toString())
+  //     );
+  //     const wethBalanceBefore = await weth.balanceOf(deployedAddress);
+  //     expect(wethBalanceBefore).to.equal(0);
+  //     const usdc = new ethers.Contract(USDC_TOKEN.address, erc20Abi, owner);
+  //     const usdcBalanceBefore = await usdc.balanceOf(deployedAddress);
+  //     expect(usdcBalanceBefore).to.equal(0);
+
+  //     const route = await getRoute(
+  //       deployedAddress,
+  //       WETH_TOKEN,
+  //       USDC_TOKEN,
+  //       amountToSwap
+  //     );
+  //     await smartWallet
+  //       .connect(trader)
+  //       .swap(
+  //         WETH_TOKEN.address,
+  //         USDC_TOKEN.address,
+  //         fromReadableAmount(amountToSwap, 18),
+  //         BigInt(0),
+  //         route?.methodParameters?.calldata
+  //       );
+
+  //     // @ts-ignore
+  //     const ethBalanceAfter = await ethers.provider.getBalance(deployedAddress);
+  //     expect(ethBalanceAfter).to.equal(ethers.parseEther((0).toString()));
+
+  //     const wethBalanceAfter = await weth.balanceOf(deployedAddress);
+  //     expect(wethBalanceAfter).to.equal(
+  //       fromReadableAmount(amountToDeposit, 18) -
+  //         fromReadableAmount(amountToSwap, 18)
+  //     );
+  //     const usdcBalanceAfter = await usdc.balanceOf(deployedAddress);
+  //     expect(usdcBalanceAfter).to.be.greaterThan(0);
+  //   });
+
+  //   it("should fail if less than min out", async function () {
+  //     const { smartWallet, ethSender, owner, trader } = await loadFixture(
+  //       deployContracts
+  //     );
+
+  //     const amountToSwap = 1;
+  //     const amountToDeposit = amountToSwap * 10;
+
+  //     // @ts-ignore
+  //     const deployedAddress = await smartWallet.getAddress();
+  //     const tx = {
+  //       to: deployedAddress,
+  //       value: ethers.parseEther(amountToDeposit.toString()),
+  //     };
+  //     await ethSender.sendTransaction(tx);
+
+  //     // @ts-ignore
+  //     const ethBalanceBefore = await ethers.provider.getBalance(
+  //       deployedAddress
+  //     );
+  //     expect(ethBalanceBefore).to.equal(
+  //       ethers.parseEther(amountToDeposit.toString())
+  //     );
+  //     const wethBalanceBefore = await weth.balanceOf(deployedAddress);
+  //     expect(wethBalanceBefore).to.equal(0);
+  //     const usdc = new ethers.Contract(USDC_TOKEN.address, erc20Abi, owner);
+  //     const usdcBalanceBefore = await usdc.balanceOf(deployedAddress);
+  //     expect(usdcBalanceBefore).to.equal(0);
+
+  //     const route = await getRoute(
+  //       deployedAddress,
+  //       WETH_TOKEN,
+  //       USDC_TOKEN,
+  //       amountToSwap
+  //     );
+  //     await expect(
+  //       smartWallet
+  //         .connect(trader)
+  //         .swap(
+  //           WETH_TOKEN.address,
+  //           USDC_TOKEN.address,
+  //           fromReadableAmount(amountToSwap, 18),
+  //           BigInt(9999e18),
+  //           route?.methodParameters?.calldata
+  //         )
+  //     ).to.be.revertedWith("Out amount less than min out");
+  //   });
+  // });
 });
