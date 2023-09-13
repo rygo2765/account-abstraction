@@ -24,6 +24,7 @@ describe("SmartWallet", function () {
   async function deployContracts() {
     //initialize accounts for deploying smart wallet
     const [owner, tokenProvider, ethSender, trader, recipient, rando] =
+      // @ts-ignore
       await ethers.getSigners();
     weth = new ethers.Contract(WETH_TOKEN.address, erc20Abi, owner);
     //deploy acount abstraction contract using owner account
@@ -152,12 +153,14 @@ describe("SmartWallet", function () {
         await expect(
           smartWallet
             .connect(rando)
+            // @ts-ignore
             .withdrawTokens(myToken.getAddress(), BigInt(1000), rando.address)
         ).to.be.revertedWith("Address is not whitelisted");
 
         await expect(
           smartWallet
             .connect(owner)
+            // @ts-ignore
             .withdrawTokens(myToken.getAddress(), BigInt(1000), rando.address)
         ).to.be.revertedWith("Address is not whitelisted");
       });
@@ -190,12 +193,14 @@ describe("SmartWallet", function () {
         await expect(
           smartWallet
             .connect(rando)
+            // @ts-ignore
             .withdrawTokens(myToken.getAddress(), BigInt(1000), rando.address)
         ).to.be.revertedWith("Address is not whitelisted");
 
         await expect(
           smartWallet
             .connect(owner)
+            // @ts-ignore
             .withdrawTokens(myToken.getAddress(), BigInt(1000), rando.address)
         ).to.be.revertedWith("Address is not whitelisted");
       });
@@ -217,7 +222,9 @@ describe("SmartWallet", function () {
   describe("Withdrawals", () => {
     it("should have an initial ETH balance of 0", async function () {
       const { smartWallet } = await loadFixture(deployContracts);
+      // @ts-ignore
       const ethBalance = await ethers.provider.getBalance(
+        // @ts-ignore
         smartWallet.getAddress()
       );
       expect(ethBalance).to.equal(0);
@@ -225,6 +232,7 @@ describe("SmartWallet", function () {
 
     it("should be able to receive ETH", async function () {
       const { smartWallet, ethSender } = await loadFixture(deployContracts);
+      // @ts-ignore
       const deployedAddress = await smartWallet.getAddress();
 
       const tx = {
@@ -234,6 +242,7 @@ describe("SmartWallet", function () {
 
       await ethSender.sendTransaction(tx);
 
+      // @ts-ignore
       const ethBalance = await ethers.provider.getBalance(deployedAddress);
       expect(ethBalance).to.equal(ethers.parseEther("1.0"));
     });
@@ -242,6 +251,7 @@ describe("SmartWallet", function () {
       const { smartWallet, ethSender, recipient } = await loadFixture(
         deployContracts
       );
+      // @ts-ignore
       const deployedAddress = await smartWallet.getAddress();
       const withdrawalAmount = 1;
       await smartWallet.addWithdrawalAddress(recipient);
@@ -251,15 +261,17 @@ describe("SmartWallet", function () {
         value: ethers.parseEther((withdrawalAmount * 2).toString()),
       };
       await ethSender.sendTransaction(tx);
-
+      // @ts-ignore
       const balanceBefore = await ethers.provider.getBalance(deployedAddress);
 
       await smartWallet.withdrawEth(
         ethers.parseEther(withdrawalAmount.toString()),
         recipient.address
       );
+      // @ts-ignore
       const balanceAfter = await ethers.provider.getBalance(deployedAddress);
 
+      // @ts-ignore
       const recipientBalance = await ethers.provider.getBalance(
         deployedAddress
       );
@@ -279,6 +291,7 @@ describe("SmartWallet", function () {
       await smartWallet.addWithdrawalAddress(recipient);
 
       //transfer token to SmartWallet contract
+      // @ts-ignore
       const deployedAddress = await smartWallet.getAddress();
 
       const amountToMint = 134;
@@ -292,6 +305,7 @@ describe("SmartWallet", function () {
 
       //withdraw tokens
       await smartWallet.withdrawTokens(
+        // @ts-ignore
         myToken.getAddress(),
         amountToWithdraw,
         recipient.address
@@ -313,7 +327,7 @@ describe("SmartWallet", function () {
 
       const amountToSwap = 1;
       const amountToDeposit = amountToSwap * 10;
-
+      // @ts-ignore
       const deployedAddress = await smartWallet.getAddress();
       const tx = {
         to: deployedAddress,
@@ -321,6 +335,7 @@ describe("SmartWallet", function () {
       };
       await ethSender.sendTransaction(tx);
 
+      // @ts-ignore
       const ethBalanceBefore = await ethers.provider.getBalance(
         deployedAddress
       );
@@ -349,6 +364,7 @@ describe("SmartWallet", function () {
           route?.methodParameters?.calldata
         );
 
+      // @ts-ignore
       const ethBalanceAfter = await ethers.provider.getBalance(deployedAddress);
       expect(ethBalanceAfter).to.equal(ethers.parseEther((0).toString()));
 
@@ -369,6 +385,7 @@ describe("SmartWallet", function () {
       const amountToSwap = 1;
       const amountToDeposit = amountToSwap * 10;
 
+      // @ts-ignore
       const deployedAddress = await smartWallet.getAddress();
       const tx = {
         to: deployedAddress,
@@ -376,6 +393,7 @@ describe("SmartWallet", function () {
       };
       await ethSender.sendTransaction(tx);
 
+      // @ts-ignore
       const ethBalanceBefore = await ethers.provider.getBalance(
         deployedAddress
       );

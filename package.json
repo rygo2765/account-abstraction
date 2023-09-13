@@ -2,7 +2,8 @@
   "name": "hardhat-project",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^3.0.0",
-    "hardhat": "^2.17.2"
+    "hardhat": "^2.17.2",
+    "ts-node": "^10.9.1"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.9.3",
@@ -11,9 +12,9 @@
     "@uniswap/v3-core": "^1.0.1",
     "@uniswap/v3-periphery": "^1.4.3",
     "@uniswap/v3-sdk": "^3.10.0",
-    "ethers5": "npm:ethers@5",
     "dotenv": "^16.3.1",
-    "dotenv-cli": "^7.3.0"
+    "dotenv-cli": "^7.3.0",
+    "ethers5": "npm:ethers@5"
   },
   "description": "This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.",
   "version": "1.0.0",
@@ -24,7 +25,9 @@
   "scripts": {
     "test": "dotenv hardhat test",
     "start": "dotenv hardhat node",
-    "example:swap": "dotenv hardhat run scripts/swap.ts"
+    "example:swap": "dotenv hardhat run scripts/swap.ts",
+    "deploy": "dotenv hardhat run scripts/deploy.ts",
+    "deploy:arbitrum": "dotenv hardhat run scripts/deploy.ts -- --network arbitrumone"
   },
   "author": "",
   "license": "ISC"
