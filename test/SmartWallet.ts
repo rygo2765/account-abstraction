@@ -208,9 +208,9 @@ describe("SmartWallet", function () {
 
     describe("Swap", () => {
       it("should allow owner to add to trader whitelist", async () => {
-        const { smartWallet, rando } = await loadFixture(deployContracts);
-        
-        await smartWallet.addTraderAddress(rando.address);
+        const { smartWallet, owner, rando } = await loadFixture(deployContracts);
+
+        await smartWallet.connect(owner).addTraderAddress(rando.address);
         const newTrader = await smartWallet.isWhitelistedTrader(rando.address);
 
         expect(newTrader).to.equal(true);
@@ -228,9 +228,9 @@ describe("SmartWallet", function () {
       });
 
       it("should allow owner to remove from trader whitelist", async () => {
-        const { smartWallet, rando } = await loadFixture(deployContracts);
+        const { smartWallet, owner, rando } = await loadFixture(deployContracts);
 
-        await smartWallet.addTraderAddress(rando.address);
+        await smartWallet.connect(owner).addTraderAddress(rando.address);
         const newTraderAdded = await smartWallet.isWhitelistedTrader(
           rando.address
         );
@@ -244,9 +244,9 @@ describe("SmartWallet", function () {
       });
 
       it("should not allow non-owner to remove from trader whitelist", async () => {
-        const { smartWallet, rando } = await loadFixture(deployContracts);
+        const { smartWallet, owner, rando } = await loadFixture(deployContracts);
 
-        await smartWallet.addTraderAddress(rando.address);
+        await smartWallet.connect(owner).addTraderAddress(rando.address);
         const newTraderAdded = await smartWallet.isWhitelistedTrader(
           rando.address
         );
